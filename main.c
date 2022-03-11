@@ -6,7 +6,7 @@
 /*   By: mjoosten <mjoosten@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/01 16:13:06 by mjoosten          #+#    #+#             */
-/*   Updated: 2022/03/04 17:38:29 by mjoosten         ###   ########.fr       */
+/*   Updated: 2022/03/11 12:03:04 by mjoosten         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,29 +14,32 @@
 
 int	main(int argc, char **argv, char **env)
 {
+	pid_t	pid;
 	char	**strs;
-	int		fds[2];
 	int		pipes[2];
+	int		fds[2];
+	int		ret;
 
 	if (argc < 5)
 		return (1);
 	pipe(pipes);
 	strs = ft_split(argv[2], ' ');
-	ft_getpath(strs, env);
+	*strs = ft_getpath(strs, env);
 	fds[0] = open(argv[1], O_RDONLY);
 	fds[1] = pipes[1];
-	ft_cmd(strs, fds, 1);
+	ft_cmd(strs, fds);
 	ft_free_array(strs);
 	strs = ft_split(argv[3], ' ');
-	ft_getpath(strs, env);
+	*strs = ft_getpath(strs, env);
 	fds[0] = pipes[0];
-	fds[1] = open(argv[4], O_CREAT | O_WRONLY, 0666);
-	ft_cmd(strs, fds, 1);
+	fds[1] = open(argv[4], O_CREAT | O_WRONLY, 0644);
+	pid = ft_cmd(strs, fds);
 	ft_free_array(strs);
-	exit(EXIT_SUCCESS);
+	waitpid(pid, &ret, 0);
+	return (WEXITSTATUS(ret));
 }
 
-void	ft_cmd(char	**argv, int fds[2], int fd_close)
+pid_t	ft_cmd(char	**argv, int fds[2])
 {
 	pid_t	pid;
 
@@ -48,11 +51,12 @@ void	ft_cmd(char	**argv, int fds[2], int fd_close)
 		execve(*argv, argv, 0);
 		ft_error(0);
 	}
-	close(fds[fd_close]);
-	waitpid(pid, 0, 0);
+	close(fds[0]);
+	close(fds[1]);
+	return (pid);
 }
 
-void	ft_getpath(char **strs, char **env)
+char	*ft_getpath(char **strs, char **env)
 {
 	char	**paths;
 	char	*path;
@@ -61,16 +65,16 @@ void	ft_getpath(char **strs, char **env)
 	i = 0;
 	paths = ft_getpaths(env);
 	path = ft_strjoin(paths[i++], *strs);
-	while (access(path, F_OK))
+	while (access(path, F_OK | X_OK))
 	{
 		free(path);
 		if (!paths[i])
-			break ;
+			ft_error("Command not found\n");
 		path = ft_strjoin(paths[i++], *strs);
 	}
-	free(*strs);
-	*strs = path;
 	ft_free_array(paths);
+	free(*strs);
+	return (path);
 }
 
 char	**ft_getpaths(char **env)

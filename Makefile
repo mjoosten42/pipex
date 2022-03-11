@@ -1,6 +1,6 @@
 NAME = pipex
 CC = gcc
-FLAGS = -Wall -Werror -Wextra #-g -fsanitize=address
+FLAGS = -Wall -Werror -Wextra
 LIBFT = libft/libft.a
 
 SRC = 	main.c
@@ -28,6 +28,6 @@ fclean: clean
 re: fclean all
 
 test: $(NAME)
-	./pipex infile "cat -e" "wc -w" outfile
+	./pipex input "grep fd" "wc -l" output
 
 .PHONY = clean fclean re
